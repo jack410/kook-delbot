@@ -59,6 +59,24 @@ func (gteh *MessageDelHandler) Handle(e event.Event) error {
 
 		encoder := simplifiedchinese.GBK.NewEncoder()
 
+		//构建文件名
+		volChatLogPath := fmt.Sprintf("/root/chat/80volchatlog-%s.txt", currentDate)
+		volChatLogFile, err := os.OpenFile(volChatLogPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer volChatLogFile.Close()
+
+		if hasPrefix(msgEvent.Author.Nickname) {
+			currentTime := time.Now()
+			formattedTime := currentTime.Format("2006-01-02 15:04:05")
+			line := strings.Join([]string{formattedTime, msgEvent.AuthorId, msgEvent.Author.Nickname, msgEvent.Content}, ", ")
+			_, err := volChatLogFile.WriteString(line + "\n")
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
 		if msgEvent.Author.Nickname != "" {
 			currentTime := time.Now()
 			formattedTime := currentTime.Format("2006-01-02 15:04:05")
@@ -86,7 +104,7 @@ func (gteh *MessageDelHandler) Handle(e event.Event) error {
 			formattedTime := currentTime.Format("2006-01-02 15:04:05")
 			log.Infof(formattedTime, "删除了消息：", msgEvent.KMarkdown.RawContent)
 		}
-		
+
 		return nil
 	}()
 	if err != nil {
@@ -155,4 +173,8 @@ func SendGroupCardessage(cardMessageContent, channel_id string, client *helper.A
 		log.Infof("发送echoDataByte出错", err)
 	}
 	log.Infof("resp:%s", string(resp))
+}
+
+func hasPrefix(s string) bool {
+	return strings.HasPrefix(s, "CM |") || strings.HasPrefix(s, "VOL |")
 }
